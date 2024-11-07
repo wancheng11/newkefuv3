@@ -1,0 +1,2077 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线客服</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: '微软雅黑', sans-serif;
+            background-color: #f5f5f5;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden; /* 禁止整个页面滚动 */
+            position: fixed; /* 固定整个页面 */
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #fff;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 100;
+            box-sizing: border-box;
+        }
+
+        .back-button {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .header-title {
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .chat-container {
+            padding: 15px;
+            margin-bottom: 60px;
+            margin-top: 60px;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 120px);
+            overflow-y: auto;
+            overflow-x: hidden; /* 禁止水平滚动 */
+            width: 100%;
+            box-sizing: border-box;
+            position: fixed; /* 固定位置 */
+            left: 0;
+            right: 0;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            width: 100%;
+            box-sizing: border-box; /* 确保内边距包含在宽度内 */
+        }
+
+        .message.system {
+            justify-content: center;
+        }
+
+        .message.service {
+            justify-content: flex-start;
+        }
+
+        .message.customer {
+            justify-content: flex-end;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin: 0 10px;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 15px 25px;
+            border-radius: 10px;
+            position: relative;
+            white-space: pre-line;
+            line-height: 1.5;
+            word-wrap: break-word; /* 确保长文本会换行 */
+            overflow-wrap: break-word; /* 确保长单词会换行 */
+        }
+
+        .service .message-content {
+            background: #E3F2FD;
+            color: #333;
+            text-align: left;
+            margin-right: auto;
+        }
+
+        .customer .message-content {
+            background: #666666;
+            color: #ffffff;
+            text-align: left;
+            margin-left: auto;
+        }
+
+        .system-message {
+            background: #f0f0f0;
+            padding: 8px 15px;
+            border-radius: 15px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .input-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px 15px;
+            background: #fff;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .voice-button,
+        .emoji-button,
+        .plus-button {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .voice-button i,
+        .emoji-button i,
+        .plus-button i {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .emoji-panel {
+            position: fixed;
+            bottom: 60px;
+            left: 0;
+            width: 100%;
+            background: #fff;
+            padding: 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            display: none;
+            z-index: 999;
+            box-sizing: border-box;
+        }
+
+        .emoji-list {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 12px;
+            padding: 10px;
+        }
+
+        .emoji-list span {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .emoji-list span:hover {
+            background-color: #f5f5f5;
+        }
+
+        .plus-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #fff;
+            padding: 20px 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            display: none;
+            z-index: 999;
+            border-radius: 16px 16px 0 0;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+        }
+
+        .plus-panel.show {
+            transform: translateY(0);
+        }
+
+        .plus-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            padding: 10px 0;
+        }
+
+        .plus-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .plus-option i {
+            font-size: 24px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .plus-option span {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .time-stamp {
+            position: absolute;
+            bottom: 5px;
+            right: 10px;
+            font-size: 10px;
+            color: #999;
+        }
+
+        .customer .time-stamp {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* 添加表情样式 */
+        .message-content span {
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 4px;
+        }
+
+        /* 客服消息的时间戳颜色 */
+        .service .time-stamp {
+            color: #999;
+        }
+
+        /* 添加新的样式 */
+        .service-intro {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin: 0;
+        }
+
+        .avatar-large {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-bottom: 0;
+        }
+
+        .service-welcome {
+            background: #E3F2FD;
+            color: #333;
+            padding: 12px 20px 25px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 0;
+            display: inline-block;
+            width: calc(100% - 40px);
+            box-sizing: border-box;
+        }
+
+        .message-content-connect {
+            max-width: 70%;
+            padding: 12px 15px 25px;
+            border-radius: 10px;
+            position: relative;
+            white-space: pre-line;
+            line-height: 1.5;
+            word-wrap: break-word; /* 确保长文本会换行 */
+            overflow-wrap: break-word; /* 确保长单词会换行 */
+        }
+
+        .avatar-connect {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin: 0 10px;
+        }
+
+        .message-connect {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            width: 100%;
+        }
+
+        .message-connect.system {
+            justify-content: center;
+        }
+
+        .message-connect.service {
+            justify-content: flex-start;
+        }
+
+        .message-connect.customer {
+            justify-content: flex-end;
+        }
+
+        .message-connect .avatar-connect {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin: 0 10px;
+        }
+
+        .message-connect .message-content-connect {
+            max-width: 70%;
+            padding: 12px 15px 25px;
+            border-radius: 10px;
+            position: relative;
+            white-space: pre-line;
+            line-height: 1.5;
+            word-wrap: break-word; /* 确保长文本会换行 */
+            overflow-wrap: break-word; /* 确保长单词会换行 */
+        }
+
+        .service-connect .message-content-connect {
+            background: #E3F2FD;
+            color: #333;
+            text-align: left;
+            margin-right: auto;
+        }
+
+        .customer-connect .message-content-connect {
+            background: #666666;
+            color: #ffffff;
+            text-align: left;
+            margin-left: auto;
+        }
+
+        .system-message-connect {
+            background: #f0f0f0;
+            padding: 8px 15px;
+            border-radius: 15px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .time-stamp-connect {
+            position: absolute;
+            bottom: 5px;
+            right: 10px;
+            font-size: 10px;
+            color: #999;
+        }
+
+        .customer-connect .time-stamp-connect {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* 添加表情样式 */
+        .message-content-connect span {
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 4px;
+        }
+
+        /* 客服消息的时间戳颜色 */
+        .service-connect .time-stamp-connect {
+            color: #999;
+        }
+
+        /* 添加新的样式 */
+        .service-intro-connect {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin: 0;
+        }
+
+        .avatar-large-connect {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-bottom: 0;
+        }
+
+        .service-welcome-connect {
+            background: #E3F2FD;
+            color: #333;
+            padding: 12px 20px 25px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 0;
+            display: inline-block;
+            width: calc(100% - 40px);
+            box-sizing: border-box;
+        }
+
+        /* 修改人工客服接入时的特殊样式 */
+        .service-connect {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        .avatar-connect {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            position: relative;
+            z-index: 2;
+            margin-bottom: -25px;
+        }
+
+        .message-content-connect {
+            background: #f5f5f5;
+            color: #333;
+            padding: 35px 20px 25px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 200px;
+            position: relative;
+            margin: 0 auto;
+        }
+
+        /* 添加退出按钮样式 */
+        .exit-service {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            color: #333;
+            cursor: pointer;
+            display: none; /* 默认隐藏 */
+        }
+
+        .exit-service:hover {
+            color: #E41D1D;
+        }
+
+        /* 添加语音录制提示样式 */
+        .voice-tip {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 15px 20px;
+            border-radius: 10px;
+            display: none;
+            align-items: center;
+            z-index: 1001;
+        }
+
+        .voice-tip i {
+            margin-right: 10px;
+            font-size: 20px;
+        }
+
+        /* 添加表情面 */
+        .emoji-panel {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 15px 20px;
+            border-radius: 10px;
+            display: none;
+            align-items: center;
+            z-index: 1001;
+            animation: pulse 1.5s infinite;
+        }
+
+        .emoji-panel .emoji-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .emoji-panel .emoji-list span {
+            cursor: pointer;
+            font-size: 24px;
+        }
+
+        /* 添加加号面板 */
+        .plus-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #fff;
+            padding: 20px 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            display: none;
+            z-index: 999;
+            border-radius: 16px 16px 0 0;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+        }
+
+        .plus-panel.show {
+            transform: translateY(0);
+        }
+
+        .plus-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            padding: 10px 0;
+        }
+
+        .plus-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .plus-option i {
+            font-size: 24px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .plus-option span {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .input-box {
+            flex: 1;
+            height: 32px;
+            padding: 0 12px;
+            border: none;
+            border-radius: 16px;
+            font-size: 14px;
+            background-color: #f5f5f5;
+            color: #333;
+            text-align: left;
+        }
+
+        .input-box:focus {
+            outline: none;
+            background-color: #f5f5f5;
+        }
+
+        .input-box::placeholder {
+            color: #999;
+        }
+
+        /* 添加图片和文件消息的样式 */
+        .image-content {
+            padding: 5px !important;
+            background: transparent !important;
+        }
+
+        .sent-image {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            display: block;
+        }
+
+        .file-content {
+            background: #f5f5f5;
+            padding: 10px 15px;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-info i {
+            font-size: 24px;
+            color: #666;
+        }
+
+        .file-name {
+            font-size: 14px;
+            color: #333;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-size {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* 添加订单选择器样式 */
+        .order-selector {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .order-selector-content {
+            width: 90%;
+            max-width: 320px;
+            max-height: 80vh;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .order-selector-header {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f8f8;
+        }
+
+        .order-selector-header span {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .order-selector-header i {
+            font-size: 20px;
+            color: #666;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .order-selector-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .selector-order-item {
+            background: #fff;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid #eee;
+        }
+
+        .selector-order-number {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .selector-order-info {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .selector-order-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .selector-order-price {
+            color: #E41D1D;
+            font-weight: bold;
+        }
+
+        .selector-order-button {
+            background: #2196F3;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="back-button" onclick="history.back()">
+            <i class="fas fa-chevron-left"></i>
+        </div>
+        <h1 class="header-title">智能客服</h1>
+        <div class="exit-service" onclick="exitHumanService()" style="display: none;">
+            <i class="fas fa-sign-out-alt"></i>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <!-- 初始消息会由 JavaScript 动态添加 -->
+    </div>
+
+    <div class="input-container">
+        <div class="voice-button" onclick="startVoiceInput()">
+            <i class="fas fa-microphone"></i>
+        </div>
+        <input type="text" class="input-box" placeholder="请输入消息..." enterkeyhint="send">
+        <div class="emoji-button" onclick="toggleEmojiPanel()">
+            <i class="far fa-smile"></i>
+        </div>
+        <div class="plus-button" onclick="togglePlusPanel()">
+            <i class="fas fa-plus"></i>
+        </div>
+    </div>
+
+    <div class="emoji-panel" id="emojiPanel">
+        <div class="emoji-list">
+            <!-- 这里添加表情列表 -->
+            <span onclick="insertEmoji('😊')">😊</span>
+            <span onclick="insertEmoji('😂')">😂</span>
+            <span onclick="insertEmoji('🤣')">🤣</span>
+            <span onclick="insertEmoji('😍')">😍</span>
+            <span onclick="insertEmoji('🥰')">🥰</span>
+            <span onclick="insertEmoji('😘')">😘</span>
+            <span onclick="insertEmoji('😎')">😎</span>
+            <span onclick="insertEmoji('🤔')">🤔</span>
+            <span onclick="insertEmoji('😅')">😅</span>
+            <span onclick="insertEmoji('😉')">😉</span>
+            <span onclick="insertEmoji('🌹')">🌹</span>
+            <span onclick="insertEmoji('👍')">👍</span>
+            <span onclick="insertEmoji('❤️')">❤️</span>
+            <span onclick="insertEmoji('💕')">💕</span>
+            <span onclick="insertEmoji('💪')">💪</span>
+        </div>
+    </div>
+
+    <div class="plus-panel" id="plusPanel">
+        <div class="plus-options">
+            <div class="plus-option" onclick="handleFileSelect('image')">
+                <i class="fas fa-image"></i>
+                <span>图片</span>
+            </div>
+            <div class="plus-option" onclick="handleFileSelect('camera')">
+                <i class="fas fa-camera"></i>
+                <span>拍照</span>
+            </div>
+            <div class="plus-option" onclick="handleFileSelect('file')">
+                <i class="fas fa-file"></i>
+                <span>文件</span>
+            </div>
+            <div class="plus-option" onclick="showOrderSelector()">
+                <i class="fas fa-list-alt"></i>
+                <span>选择订单</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="order-selector" id="orderSelector">
+        <div class="order-selector-content">
+            <div class="order-selector-header">
+                <span>选择订单</span>
+                <i class="fas fa-times" onclick="closeOrderSelector()"></i>
+            </div>
+            <div class="order-selector-list">
+                <!-- 订单列表将通过 JavaScript 动态添加 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 添加获问候语的函数
+        function getGreeting() {
+            const hour = new Date().getHours();
+            if (hour >= 5 && hour < 12) {
+                return '早上好';
+            } else if (hour >= 12 && hour < 18) {
+                return '中午好';
+            } else if (hour >= 18 && hour < 23) {
+                return '晚上好';
+            } else {
+                return '深夜好';
+            }
+        }
+
+        // 修改页面加载的处理
+        window.onload = function() {
+            // 默认显示智能客服
+            const headerTitle = document.querySelector('.header-title');
+            headerTitle.textContent = '智能客服';
+            
+            const selectedOrder = JSON.parse(localStorage.getItem('selectedOrder'));
+            if (selectedOrder) {
+                // 获取用户名和问候语
+                const userName = selectedOrder.booker.replace('先生', '').replace('女士', '');
+                const greeting = getGreeting();
+                const currentTime = new Date().toLocaleTimeString('zh-CN', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false
+                });
+                
+                // 先发送订单信息
+                const orderMessage = 
+`订单号：${selectedOrder.orderNumber}
+项目：${selectedOrder.orderInfo}
+预订人：${selectedOrder.booker}
+出行日期：${selectedOrder.date}
+价格：${selectedOrder.price}`;
+                
+                const orderHTML = `
+                    <div class="message service">
+                        <img src="https://s1.imagehub.cc/images/2024/11/08/310427fdd306fc5d1aaea5fb94728d50.jpg" alt="客服头像" class="avatar">
+                        <div class="message-content">
+                            ${orderMessage.replace(/\n/g, '<br>')}
+                            <div class="time-stamp">${currentTime}</div>
+                        </div>
+                    </div>
+                `;
+                
+                // 清空原有的欢迎消息
+                chatContainer.innerHTML = '';
+                
+                // 添加订单信息
+                chatContainer.insertAdjacentHTML('beforeend', orderHTML);
+                
+                // 迟发送问候语
+                setTimeout(() => {
+                    const greetingTime = new Date().toLocaleTimeString('zh-CN', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                    
+                    const greetingHTML = `
+                        <div class="message service">
+                            <img src="https://s1.imagehub.cc/images/2024/11/08/310427fdd306fc5d1aaea5fb94728d50.jpg" alt="客服头像" class="avatar">
+                            <div class="message-content">
+                                尊敬的${userName}${greeting}，您遇到了什么问题呢？让我来为你处理吧~ <span style="color: #ff4d4f;">🌹</span>
+                                <div class="time-stamp">${greetingTime}</div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    chatContainer.insertAdjacentHTML('beforeend', greetingHTML);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }, 1000); // 延迟1秒发送问候语
+                
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }
+
+        // 添加切换到人工服的函数
+        function switchToHumanService() {
+            const headerTitle = document.querySelector('.header-title');
+            headerTitle.textContent = '在线客服';
+            
+            // 添加切换提示消息
+            const currentTime = new Date().toLocaleTimeString('zh-CN', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false
+            });
+            
+            const switchMessage = `
+                <div class="time-stamp">${currentTime}</div>
+                <div class="message system">
+                    <div class="system-message">正在为您转接人工客服，请稍候...</div>
+                </div>
+            `;
+            
+            chatContainer.insertAdjacentHTML('beforeend', switchMessage);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // 模拟人工客服接入
+            setTimeout(() => {
+                const humanMessage = `
+                    <div class="time-stamp">${currentTime}</div>
+                    <div class="message service">
+                        <img src="https://s1.imagehub.cc/images/2024/11/08/310427fdd306fc5d1aaea5fb94728d50.jpg" alt="客服头像" class="avatar">
+                        <div class="message-content">
+                            您好，我是客服小万，很高兴为您服务。请问有什么可以帮您？
+                        </div>
+                    </div>
+                `;
+                
+                chatContainer.insertAdjacentHTML('beforeend', humanMessage);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 1500);
+        }
+
+        // 修改判断客服类型的函
+        function checkServiceType() {
+            // 使用随机数模拟客服类型判断（实际应该根据业务逻辑判断）
+            const isHumanService = Math.random() < 0.5;
+            
+            // 更新标题
+            const headerTitle = document.querySelector('.header-title');
+            if (headerTitle) {
+                headerTitle.textContent = isHumanService ? '在线客服' : '智能客服';
+            }
+            
+            // 将客服类型存储在 localStorage 中
+            localStorage.setItem('serviceType', isHumanService ? 'human' : 'ai');
+            
+            return isHumanService;
+        }
+
+        // 添加获取客服类型的函数
+        function getServiceType() {
+            return localStorage.getItem('serviceType') === 'human';
+        }
+
+        // 扩展智能机器人对话系统，添加更多场景
+        const botResponses = {
+            // 充值退款相关
+            '值': '您可以通过以下方充值：\n1. 支付宝\n2. 微信支付\n3. 银行卡\n请选择您想使用的支付方式。',
+            '退款': '款申请将在1-3个工作日内处理，退款金额将原路返回您的支付账户。',
+            '支付': '我们支持支付、微信支付和银行卡支付，请问您想了解哪种支付方式？',
+            '钱': '您可以选择多种支付方式：\n1. 支付宝\n2. 微信支付\n3. 银行卡\n请问您想使用哪种方式？',
+            
+            // 订单相关
+            '订单': '您可以在"全部订单"中查看您的所有单记录，包括待付款、进行中、已完成和已退款的订单。',
+            '取消': '订单取消规则：\n1. 付款订单可直接取消\n2. 已付款订单需要申请退款\n3. 进行中的订单需要联系客服处理',
+            '修改': '单修说明：\n1. 未付款订单可接修改\n2. 已付款订单联系客服处理\n3. 部分信息修改可能产生费用',
+            
+            // 城市玩伴相关
+            '城市玩伴': '城市玩伴服务包括：\n1. 本地向导\n2. 景点讲解\n3. 美食推荐\n4. 拍照服务\n请问您需要哪项服务？',
+            '玩伴': '我们的玩伴都经过严格筛选，提供专业的本地向导服务。您可以根据评分和评价选择合适的玩伴。',
+            '向导': '本地向导可以为您供：\n1. 景点介\n2. 美食推荐\n3. 路线规划\n4. 文化讲解',
+            
+            // 门票相关
+            '门票': '门票预订说明：\n1. 提前1天预订\n2. 提供电子票\n3. 可选择快通道\n需要我为您介绍具体景点吗？',
+            '景点': '热门景点推荐：\n1. 迪士尼乐园\n2. 东方明珠\n3. 外滩观光\n4. 城隍庙\n请问您对哪个景点感兴趣？',
+            '预订': '预订流：\n1. 选择景点和日期\n2. 填写游客信息\n3. 在线支付\n4. 收取电子票',
+            
+            // 游戏陪玩相关
+            '游戏': '支持的游戏类型\n1. MOBA类\n2. FPS射击类\n3. 卡牌类\n4. 休闲类\n请问您想玩什么类型的游戏？',
+            '陪玩': '陪玩服务说明：\n1. 专业陪玩\n2. 按小时计费\n3. 支持语音\n4. 技术指导',
+            '价格': '价格说明：\n1. 基础陪玩：30元/小时\n2. 技术指导：50元/小时\n3. 团队配合：40元/小时',
+            
+            // 问候语和常用语
+            '你好': '您好！我是智能客服小万，很高兴为您服务。请问有什么可以帮您？',
+            '在吗': '您好我的！请问有什么可以帮您？',
+            '谢谢': '不客气！很高兴能帮到您。如果还有其他问题，随时问我哦~',
+            '再见': '感谢您的咨询，祝您生活愉快！如果还有问题随时来问我~',
+            
+            // 投诉和建议
+            '投诉': '您的意见对我们很重要！请详细描述您遇到的问题，我们会认真处理并尽快回复您。',
+            '建议': '感谢您的建议！我们会认真考虑您的意见，不断改进服务质量。',
+            '差评': '非常抱歉给您带来不好的体验。请告诉我具体情况，我们会认真处理并改进。',
+            
+            // 添加更多场景
+            // 负面情绪处理
+            '傻': '我理解您现在可能有些不愉快。诉我具体遇了什么题，我会真帮您解决。',
+            '笨': '抱歉让您不满意。请告诉我具体的问题，我会努力提供更好的服务。',
+            '垃圾': '非常抱歉给您带来不好的体验。请详细描述您的问题，我们会立即处理并改进服务。',
+            '废物': '理解您的心情，如果服务有任何不周，我们会立即改进。请问具体是哪里让您不满意？',
+            '滚': '我理解您现在很生气，但请给我们一个改正的机会。遇到了什么问题？',
+            
+            // 情绪安抚
+            '生气': '请您先不要生气，有什么问题我们一起来解决。您遇到了什么困难？',
+            '不满意': '非常抱歉没有达到您的期望。请告诉我具体问题，我会竭诚为您服务。',
+            '不开心': '很抱歉让您不开心了。请告诉我发生了什么，我会尽全力帮您解。',
+            '失望': '对于让您失望，我深表歉意。请给我们一个改进的机会，具体是哪里做得不好？',
+            
+            // 紧急情况
+            '紧急': '请不用着急，我们会优先处理您的问题。请简单描述一下具体情况。',
+            '急': '我明白您现在很着急，我会优先为您处理，请告诉我具体情况。',
+            '快点': '我会加快处理速度。请问具体遇了什么问题？',
+            
+            // 扬回应
+            '好': '感谢您的认可！我们会继续努力提供更好的服务~',
+            '棒': '谢谢夸奖！您的支持是我们进步的动力~',
+            '优秀': '感谢您的肯定！我们会继续持并做得更好~',
+            
+            // 闲聊场景
+            '无聊': '要不要看看我们的热门活动？或者我可以为您推荐一些有趣的行程~',
+            '困': '工作辛苦了！要不要看看我们的休闲娱乐项目，放松一下心情？',
+            '累': '辛苦了！要不要考虑来一场轻松的旅行？我可以为您推荐一些休闲路线~',
+            
+            // 特问候
+            '在': '我在的哦，很高兴为您服务~',
+            '忙不忙': '不忙的，我随时都在。请问有什么可以帮您？',
+            '人工': '需要转人工客服吗？我可以帮转接，不过可能需要稍等片刻。',
+            
+            // 道别场景
+            '拜拜': '感谢您的咨询，祝您生活愉快！欢迎随时找我聊天哦~',
+            '再见': '再见！祝您心情愉快，期待下次为您服务~',
+            '88': '88！有问题随时来找我哦，祝您生活愉快~',
+            
+            // 添加更多场景
+            // 账相关
+            '账号': '账号相关问题可以帮您处理以下内容：\n1. 账号登录\n2. 密码修改\n3. 账号安全\n4. 实名证',
+            '密码': '密码修改流程：\n1. 验证原密码\n2. 设置新密码\n3. 确认新密码\n需要我帮您修改密码吗？',
+            '登录': '无法登录可能有以下原因：\n1. 密码错误\n2. 账号被锁定\n3. 网络问题\n请告诉我具体情况。',
+            '注册': '注册新账号需要：\n1. 手机号验证\n2. 设置密码\n3. 实名认证\n需要帮您注册吗？',
+            
+            // 安全相关
+            '安全': '账号安全建议：\n1. 定期修改密码\n2. 开启双重认证\n3. 不要告诉他人验证码\n4. 保护好个人信息',
+            '盗号': '账号被盗处理方法：\n1. 立即修改密码\n2. 联系客服冻结账\n3. 核实近期操作\n请问需要哪种帮助？',
+            '冻结': '账号冻结原因可能有：\n1. 异常登录\n2. 违规操作\n3. 系统保护\n请提供账号，我来帮您查询。',
+            
+            // 付问题
+            '微信': '微信支付注意事：\n1. 确认订单金额\n2. 检查网络连接\n3. 确保微信余额充足\n4. 支付时保持页面稳定',
+            '支付宝': '支付宝支付说明：\n1. 确认订单信息\n2. 检查支付宝余额\n3. 注意支付安全\n4. 保存支付凭证',
+            '银行卡': '银行卡支付提示：\n1. 确认卡片额度\n2. 检查开通网银\n3. 注意短信验证\n4. 保护好卡片信息',
+            
+            // 投诉升级
+            '投诉': '您的投诉我们会认真处理：\n1. 记录投诉内容\n2. 24小时内回复\n3. 专人跟进处理\n4. 结果及时反馈',
+            '态度': '于服务态问题：\n1. 深表歉意\n2. 立即改正\n3. 重新服务\n4. 跟进反馈',
+            '举报': '举报处理流程：\n1. 提供证据\n2. 核实情况\n3. 及时处\n4. 保护隐私',
+            
+            // 特殊服务
+            '加急': '加急服务说明：\n1. 优先处理\n2. 专人对接\n3. 加急费用说明\n4. 时效保障承诺',
+            '定制': '提供个性化定制：\n1. 需求评估\n2. 方案制定\n3. 价格评估\n4. 时间安排',
+            '特殊': '特殊需求服务：\n1. 无障碍设施\n2. 儿童友好\n3. 老人陪护\n4. 宠物服务',
+            
+            // 添加投诉处理场景
+            '态度差': '对于服务态度问题：\n1. 深表歉意\n2. 立即改正\n3. 重新服务\n4. 补偿方案',
+            '服务差': '服务质量问：\n1. 记录问题\n2. 立即整改\n3. 跟进反馈\n4. 提供补偿',
+            '不满意': '对于您的不满：\n1. 认真倾听\n2. 积极处理\n3. 及时反馈\n4. 持续改进',
+            
+            // 添加表扬场景
+            '点赞': '感谢您的肯定！\n我们会继续：\n1. 保持水准\n2. 不断创新\n3. 提升服务\n4. 回馈用户',
+            '表扬': '非常感谢您的表扬！\n这是对我们最大的鼓励，我们会：\n1. 再接再厉\n2. 持续改进\n3. 提供更好服务',
+            '好评': '感谢您的好评！\n我们将：\n1. 继续努力\n2. 提升服务\n3. 创新体验\n4. 回馈用户',
+            
+            // 添加道歉场景
+            '抱歉': '您的体验很重要：\n1. 诚恳道歉\n2. 积极改正\n3. 及时补偿\n4. 持续优化',
+            '对不起': '非常抱歉给您带来困扰：\n1. 立即处理\n2. 跟进反馈\n3. 改进服务\n4. 提供补偿',
+            '歉意': '向您表示诚挚的歉意：\n1. 认真对待\n2. 迅速处理\n3. 及时反馈\n4. 服务改进',
+            
+            // 添加闲聊场景
+            '无聊': '推荐有趣活动：\n1. 本地展览\n2. 文化活动\n3. 户外运动\n4. 美食探店',
+            '聊天': '我们可以聊聊：\n1. 旅行故事\n2. 美食推荐\n3. 生活趣事\n4. 文化活动',
+            '心情': '分享一些开心事：\n1. 趣味故事\n2. 温暖瞬间\n3. 生活感悟\n4. 快乐体验',
+            
+            // 添加关心问候
+            '累了': '辛苦了！建议您：\n1. 适当休息\n2. 放松心情\n3. 享受美食\n4. 做些运动',
+            '困了': '注意休息哦：\n1. 合理作息\n2. 适当运动\n3. 健康饮食\n4. 保持好心情',
+            '不舒服': '请照顾好自己：\n1. 及时就医\n2. 适当息\n3. 保持心情\n4. 健康饮食',
+            
+            // 生活服务类
+            '吃饭': '为您推荐附近美食：\n1. 人气餐厅\n2. 特色小吃\n3. 网红打卡\n4. 深夜食堂\n需要具体推荐吗？',
+            '美食': '美食推荐服务：\n1. 当地特色\n2. 人气餐厅\n3. 网红店铺\n4. 隐藏美食\n想了解哪类美食？',
+            '住宿': '住宿推荐：\n1. 经济型酒店\n2. 精品民宿\n3. 豪华酒店\n4. 特色客栈\n需要详细信息吗？',
+            '交通': '交通出行建议：\n1. 公交路线\n2. 地铁换乘\n3. 打车服务\n4. 自行车租赁',
+            
+            // 不文明用语提示
+            '滚蛋': '您的心情我理解，但请保持礼貌。让我们心平气和地沟通，一定能解决问题。',
+            '废物': '我理解您可能遇到了不愉快，但请给我们一个好好服务的机会。您遇到什么具体问题了吗？',
+            '垃圾': '您的不满我们收到了。请告诉我具体问题，我会认真处理并改进服务。',
+            '白痴': '即使您现在不满意，我们依然希望能好好为您服务。请说说具体遇到了什么问题？',
+            '神经病': '理解您的情绪，但请保持基本礼貌。让我们一起解问题好吗？',
+            
+            // 情感安抚
+            '难过': '别难过，我在这里陪您。要不要听听轻音乐，或者聊聊天？',
+            '伤心': '生活中难免有不如意，但请保持希望。要和我说说发生了什么吗？',
+            '失望': '我能理解您的心情。不如说说具体情况，让我们一起想办法？',
+            '压力': '工作生活都不容易，记得照顾好自己。要不要听听减压的建议？',
+            '焦虑': '深呼吸，放轻松。让我陪您聊聊天，或者要听些舒缓的音乐吗？',
+            
+            // 日常问候
+            '早安': '早安！愿您今天心情愉快，万事顺意~',
+            '午安': '午安！记得按时吃饭，适当休息哦~',
+            '晚安': '晚安！祝您好梦，明天会更好~',
+            '新年': '新年快乐！祝您新的一年事事如意，心想事成~',
+            '节日': '节日快乐！愿您节日愉快，与家人共享欢乐时光~',
+            
+            // 天气相关
+            '下雨': '今天是雨天，出门记得带伞哦！要注意防滑保持安全。',
+            '天气': '建议您查看天气预报APP获取实时天气信息，记得做好防护哦~',
+            '温度': '请注意及时增减衣物，保持适当温度，预防感冒。',
+            '雾霾': '空气质量不好时，建议戴口罩，减少户外活动时间。',
+            '防晒': '防晒很重要！建议您：\n1. 涂防晒霜\n2. 戴遮阳帽\n3. 撑遮阳伞\n4. 穿防晒衣',
+            
+            // 健康建议
+            '失眠': '失眠建议：\n1. 规律作息\n2. 睡前不玩手机\n3. 喝杯温牛奶\n4. 听轻音乐',
+            '感冒': '感冒建议：\n1. 多喝温水\n2. 注意保暖\n3. 适当运动\n4. 及时就医',
+            '头痛': '头痛缓解：\n1. 保持安静\n2. 适当按摩\n3. 喝点温水\n4. 如果持续建议就医',
+            '疲劳': '缓解疲劳：\n1. 合理休息\n2. 适量运动\n3. 均衡饮食\n4. 保持心情愉快',
+            
+            // 生活小贴士
+            '省钱': '省钱小技巧：\n1. 货比三家\n2. 关注优惠\n3. 理性消费\n4. 适当囤货',
+            '购物': '购物建议：\n1. 比价再买\n2. 看评价\n3. 留意活动\n4. 确认正品',
+            '装修': '装修注意：\n1. 选择正规公司\n2. 货比三家\n3. 注意环保\n4. 控制预算',
+            '搬家': '搬家建议：\n1. 提前规划\n2. 合理打包\n3. 标记物品\n4. 选择好时间',
+            
+            // 心理疏导
+            '压力大': '缓解压力：\n1. 运动放松\n2. 倾诉交流\n3. 听音乐\n4. 适当休息\n要和我聊聊吗？',
+            '孤独': '其实您不是一个人，我们都在。要不要：\n1. 听些音乐\n2. 看看电影\n3. 出门散步\n4. 和朋友聊天',
+            '迷茫': '人生难免迷茫：\n1. 给自己时间\n2. 列出目标\n3. 一步步来\n4. 保持希望\n要和我分享吗？',
+            
+            // 职场建议
+            '工作': '工作建议：\n1. 合理规划\n2. 提高效率\n3. 保持学习\n4. 注意休息',
+            '面试': '面试技巧：\n1. 充分准备\n2. 着装得体\n3. 保持自信\n4. 注意仪',
+            '升职': '职业发展：\n1. 提升能力\n2. 积累经验\n3. 扩展人脉\n4. 把握机会',
+            
+            // 学习提醒
+            '学习': '学习方法：\n1. 制定计划\n2. 专注投入\n3. 及时复习\n4. 学以致用',
+            '考试': '考试建议：\n1. 早做准备\n2. 劳逸结合\n3. 保持自信\n4. 注意休息',
+            '效率': '提高效率：\n1. 列出清单\n2. 专注当下\n3. 适时休息\n4. 奖励自己',
+            
+            // 生活情感
+            '分手': '感情的事需要时间治愈。现在最重要的是：\n1. 照顾好自己\n2. 保持希望\n3. 继续前进\n4. 相信未来',
+            '想家': '思念是爱的表现：\n1. 打个电话\n2. 发送问候\n3. 规划探访\n4. 保重身体',
+            '友情': '维系友情：\n1. 经常联系\n2. 真诚相待\n3. 互相理解\n4. 共同成长',
+            
+            // 默认回复
+            'default': '抱歉，我可能没有完全理解您的意思。您可以：\n1. 换个方式描述\n2. 查看常见问题\n3. 转人工客服\n4. 告诉我更多细节',
+
+            // 添加 GPT 风格的开放性对话
+            '推荐': function(message) {
+                if (message.includes('美食')) {
+                    return '根据您的需求，我为您推荐以下美食：\n1. 本地特色小吃：建议尝试老字号店铺\n2. 网红打卡：最近很火的创意餐厅\n3. 高分餐厅：米其林荐餐厅\n4. 夜食堂：24小时营业的特色餐厅\n\n需要了解具体哪类美食的详细信息吗？';
+                } else if (message.includes('景点')) {
+                    return '为您推荐以下热门景点：\n1. 文化景区：博物馆、古建筑\n2. 自然景观：公园、观景台\n3. 娱乐场所：主题乐园、游乐场\n4. 特色街区：文创园区、特色街道\n\n您对哪类景点更感兴趣？我可以提供更详细的信息。';
+                } else {
+                    return '我可以为您推荐：\n1. 旅游路线\n2. 美食餐厅\n3. 休闲场所\n4. 文化活动\n\n请告诉我您的具体兴趣，我会提供更个性化的推荐。';
+                }
+            },
+
+            '怎么': function(message) {
+                if (message.includes('玩')) {
+                    return '根据您的兴趣，我建议可以：\n1. 探索本地文化：参观博物馆、古迹\n2. 休闲娱乐：主题公园、购物中心\n3. 户外活动：公园散步、骑行\n4. 特色体验：本地工作坊、文化课程\n\n您想了解哪个方面的具体信息？';
+                } else if (message.includes('去')) {
+                    return '为您提供以下出行建议：\n1. 公共交通：地铁、公交路线\n2. 打车服务：网约车、出租车\n3. 自驾路线：停车场信息\n4. 步行路线：最佳步行路径\n\n需要具体路线规划吗？';
+                } else {
+                    return '我理解您在寻求帮助，请告诉我更具体的问题，我会提供相应的解决方案。';
+                }
+            },
+
+            '为什么': function(message) {
+                return '这是个很好的问题。让我们一起分析一下可能的原因：\n1. ' + 
+                       '首先，可能是因为...\n2. 其次，也可能存在...\n3. 另外不排除...\n4. 最后，也要考虑...\n\n' +
+                       '需要我针对某个具体原因详细解释吗？';
+            },
+
+            // 添加上下文理解
+            '那': function(message, context) {
+                return '我注意到您在延续之前的话题。让我们继续探讨：\n' +
+                       '1. 关于之前提到的...\n2. 您可能还关心...\n3. 补充一些相关信息...\n' +
+                       '请告诉我您想了解哪方面的详细信息？';
+            },
+
+            // 添加智能分析
+            '分析': function(message) {
+                return '让我帮您分析一下这个问题：\n\n' +
+                       '优��：\n1. ...\n2. ...\n\n' +
+                       '劣势：\n1. ...\n2. ...\n\n' +
+                       '建议：\n1. ...\n2. ...\n\n' +
+                       '需要更详细的分析吗？';
+            },
+
+            // 添加个性化建议
+            '建议': function(message) {
+                return '基于您的需求，我的建议是：\n\n' +
+                       '短期建议：\n1. ...\n2. ...\n\n' +
+                       '长期建议：\n1. ...\n2. ...\n\n' +
+                       '您觉得这些建议可行吗？我们可以进一步讨论具体实施方案。';
+            },
+
+            // 扩展不文明用语处理
+            '傻逼': '我理解您可能遇到了不愉快，但请保持基本的礼貌。让我们心平气和地沟通，一定能解决问题。您遇到了什么具体问题吗？',
+            '逼': '请保持文明用语。如果您遇到了问题，我很乐意帮您解决，但请用适当的方式表达。',
+            '傻狗': '即使您现在很生气，但请给我们一个好好交流的机会。您遇到了什么具体困难吗？',
+            '妈': '请使用文明用语交流。您的问题我们一定会认真处理，但请保持基本的礼貌。',
+            '爸': '理解您可能有不满，但请用合适的方式表达。让我们就问题本身进行沟通好吗？',
+            '操': '请保持良好的沟通方式。如果您遇到了问题，我们可以心平气和地一起解决。',
+            '滚': '我理解您现在的心情，但生气解决不了问题。不如告诉我具体发生了什么？',
+            '狗': '虽然您现在很生气，但请给我们一个好好服务的机会。您遇到什么问题了吗？',
+            '死': '您的心情我理解，但请给我们一个好好交流的机会。您具体遇到了什么困难？',
+            '草': '请保持文明用语。您的问题我们一定会认真处理，但请用适当的方式表达。',
+            '畜生': '理解您现在很气愤，但请保持基本的礼貌。让我们就问题本身进行沟通可以吗？',
+            '智障': '即使您现在不满意，我们也希望能好好为您服务。请告诉我具体问题是什么？',
+            '脑残': '您的情绪我理解，但请给我们个理性沟通机会。您遇到了什么困难？',
+            '神经': '我理解您可能遇到了不愉快，但请保持礼貌。让我们一起解决问题好吗？',
+            '白痴': '虽然您现在很生气，但请给我们一个服务的机会。您具体遇到什么问题了？',
+            '混蛋': '理解您的心情，但请保持基本礼貌。让我们就问题本身进行沟通好吗？',
+            '垃圾': '您的不满我们收到了。请告诉我具体问题，我会认真处理并改进服务。',
+            '废物': '理解您的心情，如果服务有任何不周，我们会立即改进。请问具体是哪里让您不满意？',
+
+            // 默认回复保持不变
+            'default': '抱歉，我可能没有完全理解您的意思。您可以：\n1. 换个方式描述\n2. 查看常见问题\n3. 转人工客服\n4. 告诉我更多细节'
+        };
+
+        // 修改获取回复的函数，支持更智能的回复
+        function getBotResponse(userMessage) {
+            const message = userMessage.toLowerCase();
+            
+            // 处理函数式回复
+            for (let key in botResponses) {
+                if (typeof botResponses[key] === 'function' && message.includes(key)) {
+                    return botResponses[key](message);
+                }
+            }
+            
+            // 处理固定回复
+            for (let key in botResponses) {
+                if (typeof botResponses[key] === 'string' && message.includes(key)) {
+                    return botResponses[key];
+                }
+            }
+            
+            // 如果没有匹配到关键词，尝试理解用户意图
+            if (message.length > 0) {
+                if (message.endsWith('?') || message.endsWith('？')) {
+                    return '这是个很好的问题。让我思考一下：\n1. 首先...\n2. 其次...\n3. 另外...\n4. 最后...\n\n需要我详细解释某个方面吗？';
+                }
+                if (message.includes('谢谢') || message.includes('感谢')) {
+                    return '不用谢！很高兴能帮到您。如果还有其他问题，随时问我哦~';
+                }
+                if (message.length < 4) {
+                    return '您的问题太简短了，能否详细描述一下？这样我才能更好地帮助您。';
+                }
+            }
+            
+            // 默认回复
+            return '我理解您的问题是关于"' + message + '"。为了更好地帮助您，请问：\n' +
+                   '1. 您能详细描述一下具体情况吗？\n' +
+                   '2. 您最关心的是哪个方面？\n' +
+                   '3. 您期望得到什么样的解决方案？';
+        }
+
+        // 添加转人工数和排队状态的变量
+        let transferCount = 0;
+        let isQueuing = false;
+        let queueNumber = 0;
+
+        // 添加人工和排队相关的函数
+        function handleTransferRequest(message) {
+            if (message.includes('人工') || message.includes('转人工')) {
+                transferCount++;
+                if (transferCount === 1) {
+                    // 第一次请求转人工
+                    return '您是否需要转人工服？如果需要请再次发送"转人工"。';
+                } else if (transferCount === 2) {
+                    // 第二次请求转人工，开始排队
+                    startQueuing();
+                    return '正在为您转接人工客服，前方等待人数较多，请稍候...';
+                }
+            }
+            return null;
+        }
+
+        // 修改排队功能
+        function startQueuing() {
+            isQueuing = true;
+            queueNumber = Math.floor(Math.random() * 10) + 1; // 随机1-10人排队
+            
+            // 显示初始排队消息
+            const queueMessage = `
+                <div class="message system" id="queueMessage">
+                    <div class="system-message">当前人工客服坐席全忙，您前面还有${queueNumber}人排队，请耐心等待...</div>
+                </div>
+            `;
+            chatContainer.insertAdjacentHTML('beforeend', queueMessage);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // 模拟排队度
+            const queueInterval = setInterval(() => {
+                queueNumber--;
+                if (queueNumber > 0) {
+                    // 更新系统消息的内容
+                    const systemMessage = document.getElementById('queueMessage').querySelector('.system-message');
+                    systemMessage.textContent = `当前人工客服坐席全忙，您前面还有${queueNumber}人排队，请耐心等待...`;
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                } else {
+                    clearInterval(queueInterval);
+                    // 移除排队消息
+                    const queueMsg = document.getElementById('queueMessage');
+                    if (queueMsg) queueMsg.remove();
+                    // 连接人工客服
+                    connectToHumanService();
+                }
+            }, 3000); // 每3秒更新一次排队状态
+        }
+
+        // 添加全局变量来存储当前客服类型和头像
+        let isHumanService = false;
+        const AI_AVATAR = "https://s1.imagehub.cc/images/2024/11/08/310427fdd306fc5d1aaea5fb94728d50.jpg";
+        const HUMAN_AVATAR = "https://s1.imagehub.cc/images/2024/11/08/f7c6fc8af7721e2c26d015887b28532e.jpg";
+
+        // 修改连接人工客服的函数
+        function connectToHumanService() {
+            isQueuing = false;
+            isHumanService = true;
+            
+            const currentTime = new Date().toLocaleTimeString('zh-CN', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false
+            });
+            
+            // 显示退出按钮
+            document.querySelector('.exit-service').style.display = 'block';
+            
+            // 添加特殊样式的人工客服接入消息
+            const humanMessage = `
+                <div class="service-connect">
+                    <img src="${HUMAN_AVATAR}" alt="客服头像" class="avatar-connect">
+                    <div class="message-content-connect">
+                        工号：12001，为您服务
+                        <div class="time-stamp">${currentTime}</div>
+                    </div>
+                </div>
+            `;
+            
+            chatContainer.insertAdjacentHTML('beforeend', humanMessage);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // 更新标题为人工客服
+            const headerTitle = document.querySelector('.header-title');
+            headerTitle.textContent = '在线客服';
+        }
+
+        // 添加滚动到最新消息的函数
+        function scrollToBottom() {
+            const chatContainer = document.querySelector('.chat-container');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // 修改发送消息的函数
+        function sendMessage() {
+            const inputBox = document.querySelector('.input-box');
+            const message = inputBox.value.trim();
+            
+            if (message) {
+                const currentTime = new Date().toLocaleTimeString('zh-CN', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false
+                });
+
+                // 添加用户消息
+                const userMessageHTML = `
+                    <div class="message customer">
+                        <div class="message-content">
+                            ${message}
+                            <div class="time-stamp">${currentTime}</div>
+                        </div>
+                    </div>
+                `;
+                
+                chatContainer.insertAdjacentHTML('beforeend', userMessageHTML);
+                inputBox.value = '';
+                scrollToBottom();
+                
+                // 检查是否是转人工请求
+                const transferResponse = handleTransferRequest(message);
+                if (transferResponse) {
+                    setTimeout(() => {
+                        const botTime = new Date().toLocaleTimeString('zh-CN', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: false
+                        });
+                        
+                        const botMessageHTML = `
+                            <div class="message service">
+                                <img src="${isHumanService ? HUMAN_AVATAR : AI_AVATAR}" alt="客服头像" class="avatar">
+                                <div class="message-content">
+                                    ${transferResponse}
+                                    <div class="time-stamp">${botTime}</div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        chatContainer.insertAdjacentHTML('beforeend', botMessageHTML);
+                        scrollToBottom();
+                    }, 1000);
+                } else if (!isQueuing) {
+                    // 如果不是在排队状态，则显示机器人回复
+                    setTimeout(() => {
+                        const botResponse = getBotResponse(message);
+                        const botTime = new Date().toLocaleTimeString('zh-CN', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: false
+                        });
+                        
+                        const botMessageHTML = `
+                            <div class="message service">
+                                <img src="${isHumanService ? HUMAN_AVATAR : AI_AVATAR}" alt="客服头像" class="avatar">
+                                <div class="message-content">
+                                    ${botResponse.replace(/\n/g, '<br>')}
+                                    <div class="time-stamp">${botTime}</div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        chatContainer.insertAdjacentHTML('beforeend', botMessageHTML);
+                        scrollToBottom();
+                    }, 1000);
+                }
+            }
+        }
+
+        // 修改退出人工客服的函数
+        function exitHumanService() {
+            isHumanService = false;
+            
+            // 隐藏退出按钮
+            document.querySelector('.exit-service').style.display = 'none';
+            
+            // 新标题
+            const headerTitle = document.querySelector('.header-title');
+            headerTitle.textContent = '智能客服';
+            
+            const currentTime = new Date().toLocaleTimeString('zh-CN', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false
+            });
+            
+            // 添加系统提示消息
+            const systemMessage = `
+                <div class="message system">
+                    <div class="system-message">已退出人工客服，转为智能客服为您服务</div>
+                </div>
+            `;
+            
+            chatContainer.insertAdjacentHTML('beforeend', systemMessage);
+            
+            // 添加智能客服欢迎消息
+            setTimeout(() => {
+                const welcomeMessage = `
+                    <div class="message service">
+                        <img src="${AI_AVATAR}" alt="客服头像" class="avatar">
+                        <div class="message-content">
+                            您好，我是智能客服小万，很高兴为您服务。请问有什么可以帮您？
+                            <div class="time-stamp">${currentTime}</div>
+                        </div>
+                    </div>
+                `;
+                
+                chatContainer.insertAdjacentHTML('beforeend', welcomeMessage);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 1000);
+        }
+
+        const inputBox = document.querySelector('.input-box');
+        const chatContainer = document.querySelector('.chat-container');
+
+        // 添加键盘事件监听
+        inputBox.addEventListener('keydown', function(e) { // 改为 keydown 事件
+            // 检测备类型
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            
+            // 如果是电脑端且按下Enter键（不是按下Shift+Enter）
+            if (!isMobile && e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault(); // 阻止默认换行
+                sendMessage();
+            }
+        });
+
+        // 移除原有的 keypress 和 keyup 事件监听器，改为统一处理
+        inputBox.addEventListener('keyup', function(e) {
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            // 仅在移动端处理 Enter 键
+            if (isMobile && e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // 添加语音输入相关的函数
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+
+        function startVoiceInput() {
+            const voiceButton = document.querySelector('.voice-button');
+            
+            if (!isRecording) {
+                // 开始录音
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(stream => {
+                        mediaRecorder = new MediaRecorder(stream);
+                        audioChunks = [];
+                        
+                        mediaRecorder.ondataavailable = (event) => {
+                            audioChunks.push(event.data);
+                        };
+                        
+                        mediaRecorder.onstop = () => {
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                            // 这里可以将 audioBlob 发送到服务器进行语音识别
+                            // 目前仅显示提示信息
+                            showMessage("语音识别中...");
+                        };
+                        
+                        mediaRecorder.start();
+                        isRecording = true;
+                        voiceButton.classList.add('recording');
+                        showVoiceTip("松开结束");
+                    })
+                    .catch(error => {
+                        showMessage("无法访问麦克风");
+                        console.error('Error accessing microphone:', error);
+                    });
+            } else {
+                // 停止录音
+                mediaRecorder.stop();
+                isRecording = false;
+                voiceButton.classList.remove('recording');
+                hideVoiceTip();
+                
+                // 关闭麦克风
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+        }
+
+        function showVoiceTip(text) {
+            let voiceTip = document.querySelector('.voice-tip');
+            if (!voiceTip) {
+                voiceTip = document.createElement('div');
+                voiceTip.className = 'voice-tip';
+                voiceTip.innerHTML = `
+                    <i class="fas fa-microphone"></i>
+                    <span>${text}</span>
+                `;
+                document.body.appendChild(voiceTip);
+            }
+            voiceTip.style.display = 'flex';
+        }
+
+        function hideVoiceTip() {
+            const voiceTip = document.querySelector('.voice-tip');
+            if (voiceTip) {
+                voiceTip.style.display = 'none';
+            }
+        }
+
+        function showMessage(text) {
+            // 在聊天窗口显示系统消息
+            const currentTime = new Date().toLocaleTimeString('zh-CN', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false
+            });
+            
+            const messageHTML = `
+                <div class="message system">
+                    <div class="system-message">${text}</div>
+                </div>
+            `;
+            
+            chatContainer.insertAdjacentHTML('beforeend', messageHTML);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // 添加触摸事件处理
+        document.addEventListener('DOMContentLoaded', function() {
+            const voiceButton = document.querySelector('.voice-button');
+            
+            voiceButton.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                startVoiceInput();
+            });
+            
+            voiceButton.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                if (isRecording) {
+                    startVoiceInput(); // 再次调用以停止录音
+                }
+            });
+        });
+
+        // 添加语音识别相关的变量和函数
+        let recognition;
+        let isListening = false;
+
+        // 初始化语音识别
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'zh-CN'; // 设置语言为文
+
+                // 语音识别结果处理
+                recognition.onresult = function(event) {
+                    const result = event.results[0][0].transcript;
+                    inputBox.value = result;
+                    sendMessage(); // 自动发送识别到的消息
+                };
+
+                // 语音识别错误处理
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error:', event.error);
+                    showMessage('语音识别失败，请重试');
+                    stopVoiceInput();
+                };
+
+                // 语音识别结束处理
+                recognition.onend = function() {
+                    stopVoiceInput();
+                };
+            } else {
+                showMessage('您的浏器不支持语音识别功能');
+            }
+        }
+
+        // 修改开始语音输入函数
+        function startVoiceInput() {
+            if (!recognition) {
+                initSpeechRecognition();
+            }
+
+            if (!isListening && recognition) {
+                try {
+                    recognition.start();
+                    isListening = true;
+                    const voiceButton = document.querySelector('.voice-button');
+                    voiceButton.classList.add('recording');
+                    showVoiceTip('正在聆听...');
+                } catch (error) {
+                    console.error('Speech recognition start error:', error);
+                    showMessage('语音识别启动失败，请重试');
+                    stopVoiceInput();
+                }
+            }
+        }
+
+        // 修改停止语音输入函数
+        function stopVoiceInput() {
+            if (isListening && recognition) {
+                recognition.stop();
+                isListening = false;
+                const voiceButton = document.querySelector('.voice-button');
+                voiceButton.classList.remove('recording');
+                hideVoiceTip();
+            }
+        }
+
+        // 修改语音按钮的事件监听
+        document.addEventListener('DOMContentLoaded', function() {
+            const voiceButton = document.querySelector('.voice-button');
+            
+            // 移动端触摸事件
+            voiceButton.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                startVoiceInput();
+            });
+            
+            voiceButton.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                stopVoiceInput();
+            });
+
+            // PC端点击事件
+            let isRecording = false;
+            voiceButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (!isRecording) {
+                    startVoiceInput();
+                    isRecording = true;
+                } else {
+                    stopVoiceInput();
+                    isRecording = false;
+                }
+            });
+        });
+
+        // 修改语音提示样式
+        const voiceTipStyles = `
+        .voice-tip {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 15px 20px;
+            border-radius: 10px;
+            display: none;
+            align-items: center;
+            z-index: 1001;
+            animation: pulse 1.5s infinite;
+        }
+
+        .voice-tip i {
+            margin-right: 10px;
+            font-size: 20px;
+            color: #E41D1D;
+        }
+
+        @keyframes pulse {
+            0% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.1); }
+            100% { transform: translateX(-50%) scale(1); }
+        }
+
+        .voice-button.recording {
+            background: #E41D1D;
+            animation: recording-pulse 1.5s infinite;
+        }
+
+        .voice-button.recording i {
+            color: #fff;
+        }
+
+        @keyframes recording-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        `;
+
+        // 添加样式到页面
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = voiceTipStyles;
+        document.head.appendChild(styleSheet);
+
+        // 添加表情和加号面板相关的函数
+        function toggleEmojiPanel() {
+            const emojiPanel = document.getElementById('emojiPanel');
+            const plusPanel = document.getElementById('plusPanel');
+            
+            if (emojiPanel.style.display === 'none' || !emojiPanel.style.display) {
+                emojiPanel.style.display = 'block';
+                plusPanel.style.display = 'none';
+                plusPanel.classList.remove('show');
+                // 添加延迟以确保过渡动画生效
+                setTimeout(() => {
+                    emojiPanel.classList.add('show');
+                }, 10);
+            } else {
+                emojiPanel.classList.remove('show');
+                setTimeout(() => {
+                    emojiPanel.style.display = 'none';
+                }, 300); // 等待过渡动画完成
+            }
+        }
+
+        function togglePlusPanel() {
+            const plusPanel = document.getElementById('plusPanel');
+            const emojiPanel = document.getElementById('emojiPanel');
+            
+            if (plusPanel.style.display === 'none' || !plusPanel.style.display) {
+                plusPanel.style.display = 'block';
+                setTimeout(() => plusPanel.classList.add('show'), 10); // 添加延迟以确保过渡动画生效
+                emojiPanel.style.display = 'none';
+            } else {
+                plusPanel.classList.remove('show');
+                setTimeout(() => plusPanel.style.display = 'none', 300); // 等待过渡动画完成
+            }
+        }
+
+        function insertEmoji(emoji) {
+            const inputBox = document.querySelector('.input-box');
+            inputBox.value += emoji;
+            // 平滑关闭表情面板
+            const emojiPanel = document.getElementById('emojiPanel');
+            emojiPanel.classList.remove('show');
+            setTimeout(() => {
+                emojiPanel.style.display = 'none';
+            }, 300);
+        }
+
+        // 点击其他地方关闭面板
+        document.addEventListener('click', function(e) {
+            const emojiPanel = document.getElementById('emojiPanel');
+            const emojiButton = document.querySelector('.emoji-button');
+            const plusPanel = document.getElementById('plusPanel');
+            const plusButton = document.querySelector('.plus-button');
+            
+            if (!emojiPanel.contains(e.target) && !emojiButton.contains(e.target)) {
+                emojiPanel.classList.remove('show');
+                setTimeout(() => {
+                    emojiPanel.style.display = 'none';
+                }, 300);
+            }
+            
+            if (!plusPanel.contains(e.target) && !plusButton.contains(e.target)) {
+                plusPanel.classList.remove('show');
+                setTimeout(() => {
+                    plusPanel.style.display = 'none';
+                }, 300);
+            }
+        });
+
+        // 添加文件处理相关的函数
+        function handleFileSelect(type) {
+            let input = document.createElement('input');
+            input.type = 'file';
+            
+            switch(type) {
+                case 'image':
+                    input.accept = 'image/*';
+                    input.multiple = true; // 允许选择多张图片
+                    break;
+                case 'camera':
+                    input.accept = 'image/*';
+                    input.capture = 'camera'; // 直接打开相机
+                    break;
+                case 'file':
+                    input.accept = '.doc,.docx,.pdf,.txt'; // 限制文件类型
+                    break;
+            }
+
+            input.onchange = function(e) {
+                const files = Array.from(e.target.files);
+                files.forEach(file => {
+                    if (file.size > 10 * 1024 * 1024) { // 10MB 限制
+                        showMessage('文件大小不能超过10MB');
+                        return;
+                    }
+                    
+                    if (type === 'image' || type === 'camera') {
+                        sendImage(file);
+                    } else {
+                        sendFile(file);
+                    }
+                });
+            };
+
+            input.click();
+            // 关闭加号面板
+            document.getElementById('plusPanel').style.display = 'none';
+        }
+
+        // 发送图片的函数
+        function sendImage(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const currentTime = new Date().toLocaleTimeString('zh-CN', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false
+                });
+                
+                const messageHTML = `
+                    <div class="message customer">
+                        <div class="message-content image-content">
+                            <img src="${e.target.result}" alt="发送的图片" class="sent-image">
+                            <div class="time-stamp">${currentTime}</div>
+                        </div>
+                    </div>
+                `;
+                
+                chatContainer.insertAdjacentHTML('beforeend', messageHTML);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 发送文件的函数
+        function sendFile(file) {
+            const currentTime = new Date().toLocaleTimeString('zh-CN', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false
+            });
+            
+            const messageHTML = `
+                <div class="message customer">
+                    <div class="message-content file-content">
+                        <div class="file-info">
+                            <i class="fas fa-file"></i>
+                            <span class="file-name">${file.name}</span>
+                            <span class="file-size">${formatFileSize(file.size)}</span>
+                        </div>
+                        <div class="time-stamp">${currentTime}</div>
+                    </div>
+                </div>
+            `;
+            
+            chatContainer.insertAdjacentHTML('beforeend', messageHTML);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // 添加订单选择相关的函数
+        function showOrderSelector() {
+            const orderSelector = document.getElementById('orderSelector');
+            const orderList = document.querySelector('.order-selector-list');
+            
+            // 从 localStorage 获取订单数据或模拟数据
+            const orders = [
+                {
+                    orderNumber: 'XK2847591',
+                    info: '城市玩伴 - 上海一日游',
+                    booker: '张先生',
+                    date: '2024-03-20',
+                    price: '¥299.00'
+                },
+                {
+                    orderNumber: 'PQ7391845',
+                    info: '景点门票 - 东方明珠',
+                    booker: '李女士',
+                    date: '2024-03-19',
+                    price: '¥168.00'
+                },
+                // 可以添加更多订单
+            ];
+            
+            // 生成订单列表HTML
+            orderList.innerHTML = orders.map(order => `
+                <div class="selector-order-item">
+                    <div class="selector-order-number">订单号：${order.orderNumber}</div>
+                    <div class="selector-order-info">${order.info}</div>
+                    <div class="selector-order-footer">
+                        <div class="selector-order-price">${order.price}</div>
+                        <button class="selector-order-button" onclick="selectAndSendOrder('${order.orderNumber}', '${order.info}', '${order.booker}', '${order.date}', '${order.price}')">
+                            选择
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            // 显示弹窗
+            orderSelector.style.display = 'flex';
+            
+            // 关闭加号面板
+            const plusPanel = document.getElementById('plusPanel');
+            plusPanel.classList.remove('show');
+            setTimeout(() => plusPanel.style.display = 'none', 300);
+        }
+
+        function closeOrderSelector() {
+            const orderSelector = document.getElementById('orderSelector');
+            orderSelector.style.display = 'none';
+        }
+
+        function selectAndSendOrder(orderNumber, info, booker, date, price) {
+            const currentTime = new Date().toLocaleTimeString('zh-CN', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false
+            });
+            
+            const orderMessage = 
+`订单号：${orderNumber}
+项目：${info}
+预订人：${booker}
+出行日期：${date}
+价格：${price}`;
+            
+            const messageHTML = `
+                <div class="message customer">
+                    <div class="message-content">
+                        ${orderMessage.replace(/\n/g, '<br>')}
+                        <div class="time-stamp">${currentTime}</div>
+                    </div>
+                </div>
+            `;
+            
+            chatContainer.insertAdjacentHTML('beforeend', messageHTML);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // 关闭订单选择器
+            closeOrderSelector();
+        }
+
+        // 修改 WebSocket 连接相关代码
+        let ws = null;
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 5;
+        const RECONNECT_INTERVAL = 3000;
+
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:8080');
+            
+            ws.onopen = function() {
+                console.log('WebSocket连接已建立');
+                reconnectAttempts = 0;
+                
+                // 发送用户登录信息
+                ws.send(JSON.stringify({
+                    type: 'user_login',
+                    userId: 'user_' + Math.random().toString(36).substr(2, 9),
+                    userName: '访客'
+                }));
+                
+                // 开始发送心跳
+                startHeartbeat();
+            };
+            
+            ws.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+            
+            ws.onclose = function() {
+                console.log('WebSocket连接已关闭');
+                stopHeartbeat();
+                attemptReconnect();
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket错误:', error);
+            };
+        }
+
+        function handleMessage(message) {
+            switch(message.type) {
+                case 'chat_message':
+                    displayMessage(message);
+                    break;
+                case 'history':
+                    displayChatHistory(message.messages);
+                    break;
+                case 'service_assigned':
+                    handleServiceAssigned(message);
+                    break;
+                // 处理其他类型的消息...
+            }
+        }
+
+        function attemptReconnect() {
+            if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                reconnectAttempts++;
+                console.log(`尝试重新连接... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+                setTimeout(connectWebSocket, RECONNECT_INTERVAL);
+            } else {
+                console.log('重连次数已达上限，请刷新页面重试');
+                showErrorMessage('连接已断开，请刷新页面重试');
+            }
+        }
+
+        // 心跳检测
+        let heartbeatInterval;
+
+        function startHeartbeat() {
+            heartbeatInterval = setInterval(() => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'heartbeat' }));
+                }
+            }, 15000); // 每15秒发送一次心跳
+        }
+
+        function stopHeartbeat() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+            }
+        }
+
+        // 初始连接
+        connectWebSocket();
+    </script>
+</body>
+</html> 
